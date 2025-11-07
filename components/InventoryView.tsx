@@ -20,6 +20,17 @@ const InventoryView: React.FC<{ blocks: Block[], setBlocks: React.Dispatch<React
   const [expandedRooms, setExpandedRooms] = useState<Set<string>>(new Set());
   const [modalState, setModalState] = useState<ModalState>({ type: null });
   const [sortConfig, setSortConfig] = useState<{ key: 'name' | 'itemCount'; direction: 'asc' | 'desc' }>({ key: 'name', direction: 'asc' });
+  const [itemFilters, setItemFilters] = useState<{ [roomId: string]: { name: string; minQty: string; maxQty: string } }>({});
+
+  const handleItemFilterChange = (roomId: string, filterType: 'name' | 'minQty' | 'maxQty', value: string) => {
+    setItemFilters(prev => ({
+      ...prev,
+      [roomId]: {
+        ...(prev[roomId] || { name: '', minQty: '', maxQty: '' }),
+        [filterType]: value,
+      },
+    }));
+  };
 
   const handleSort = (key: 'name' | 'itemCount') => {
     setSortConfig(prevConfig => {
@@ -241,7 +252,7 @@ const InventoryView: React.FC<{ blocks: Block[], setBlocks: React.Dispatch<React
             </span>
             <input
                 type="text"
-                placeholder="Search by block, room, or item name..."
+                placeholder="Search by block or room name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
@@ -308,7 +319,20 @@ const InventoryView: React.FC<{ blocks: Block[], setBlocks: React.Dispatch<React
             
             {expandedBlocks.has(block.id) && (
               <div className="p-4 space-y-3">
-                {block.rooms.map(room => (
+                {block.rooms.map(room => {
+                   const roomFilter = itemFilters[room.id];
+                   const displayedItems = roomFilter
+                     ? room.items.filter(item => {
+                         const nameMatch = roomFilter.name ? item.name.toLowerCase().includes(roomFilter.name.toLowerCase()) : true;
+                         const minQty = parseInt(roomFilter.minQty, 10);
+                         const minQtyMatch = isNaN(minQty) || item.quantity >= minQty;
+                         const maxQty = parseInt(roomFilter.maxQty, 10);
+                         const maxQtyMatch = isNaN(maxQty) || item.quantity <= maxQty;
+                         return nameMatch && minQtyMatch && maxQtyMatch;
+                       })
+                     : room.items;
+
+                  return (
                   <div key={room.id} className="border dark:border-dark-border rounded-md">
                      <header
                         className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/30 cursor-pointer"
@@ -325,41 +349,82 @@ const InventoryView: React.FC<{ blocks: Block[], setBlocks: React.Dispatch<React
                         </div>
                      </header>
                     {expandedRooms.has(room.id) && (
-                       <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                           <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
-                               <tr>
-                                   <th scope="col" className="px-6 py-3">Item Name</th>
-                                   <th scope="col" className="px-6 py-3 text-center">Quantity</th>
-                                   <th scope="col" className="px-6 py-3 text-right">Unit Price</th>
-                                   <th scope="col" className="px-6 py-3 text-right">Total Value</th>
-                                   <th scope="col" className="px-6 py-3 text-center">Actions</th>
-                               </tr>
-                           </thead>
-                           <tbody>
-                               {room.items.map(item => (
-                                   <tr key={item.id} className="bg-white dark:bg-dark-card hover:bg-gray-50 dark:hover:bg-gray-600 border-b dark:border-gray-700">
-                                       <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">{item.name}</th>
-                                       <td className="px-6 py-4 text-center">{item.quantity}</td>
-                                       <td className="px-6 py-4 text-right">${item.unitPrice.toFixed(2)}</td>
-                                       <td className="px-6 py-4 text-right font-medium">${(item.quantity * item.unitPrice).toFixed(2)}</td>
-                                       <td className="px-6 py-4 text-center">
-                                          <div className="flex justify-center items-center gap-2">
-                                            <button title="Edit Item" onClick={() => openModal('editItem', { blockId: block.id, roomId: room.id, item: item })} className="p-1 text-blue-500 hover:text-blue-700"><EditIcon /></button>
-                                            <button title="Delete Item" onClick={() => openModal('deleteItem', { blockId: block.id, roomId: room.id, itemId: item.id })} className="p-1 text-red-500 hover:text-red-700"><TrashIcon /></button>
-                                          </div>
-                                       </td>
-                                   </tr>
-                               ))}
-                               {room.items.length === 0 && (
-                                 <tr>
-                                     <td colSpan={5} className="text-center py-4 text-gray-500 dark:text-gray-400">No items in this room.</td>
-                                 </tr>
-                               )}
-                           </tbody>
-                       </table>
+                      <>
+                        <div className="p-3 bg-gray-50 dark:bg-dark-card border-t border-b dark:border-dark-border">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="relative col-span-1 sm:col-span-1">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                <SearchIcon />
+                              </span>
+                              <input
+                                type="text"
+                                placeholder="Filter by item name..."
+                                value={itemFilters[room.id]?.name || ''}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => handleItemFilterChange(room.id, 'name', e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                              />
+                            </div>
+                            <input
+                              type="number"
+                              placeholder="Min quantity"
+                              value={itemFilters[room.id]?.minQty || ''}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => handleItemFilterChange(room.id, 'minQty', e.target.value)}
+                              className="w-full px-4 py-2 text-sm border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                              min="0"
+                            />
+                            <input
+                              type="number"
+                              placeholder="Max quantity"
+                              value={itemFilters[room.id]?.maxQty || ''}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => handleItemFilterChange(room.id, 'maxQty', e.target.value)}
+                              className="w-full px-4 py-2 text-sm border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                              min="0"
+                            />
+                          </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                              <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
+                                  <tr>
+                                      <th scope="col" className="px-6 py-3">Item Name</th>
+                                      <th scope="col" className="px-6 py-3 text-center">Quantity</th>
+                                      <th scope="col" className="px-6 py-3 text-right">Unit Price</th>
+                                      <th scope="col" className="px-6 py-3 text-right">Total Value</th>
+                                      <th scope="col" className="px-6 py-3 text-center">Actions</th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  {displayedItems.map(item => (
+                                      <tr key={item.id} className="bg-white dark:bg-dark-card hover:bg-gray-50 dark:hover:bg-gray-600 border-b dark:border-gray-700">
+                                          <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">{item.name}</th>
+                                          <td className="px-6 py-4 text-center">{item.quantity}</td>
+                                          <td className="px-6 py-4 text-right">PKR {item.unitPrice.toFixed(2)}</td>
+                                          <td className="px-6 py-4 text-right font-medium">PKR {(item.quantity * item.unitPrice).toFixed(2)}</td>
+                                          <td className="px-6 py-4 text-center">
+                                            <div className="flex justify-center items-center gap-2">
+                                              <button title="Edit Item" onClick={() => openModal('editItem', { blockId: block.id, roomId: room.id, item: item })} className="p-1 text-blue-500 hover:text-blue-700"><EditIcon /></button>
+                                              <button title="Delete Item" onClick={() => openModal('deleteItem', { blockId: block.id, roomId: room.id, itemId: item.id })} className="p-1 text-red-500 hover:text-red-700"><TrashIcon /></button>
+                                            </div>
+                                          </td>
+                                      </tr>
+                                  ))}
+                                  {displayedItems.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="text-center py-4 text-gray-500 dark:text-gray-400">
+                                            {room.items.length > 0 ? 'No items match the current filter.' : 'This room is empty.'}
+                                        </td>
+                                    </tr>
+                                  )}
+                              </tbody>
+                          </table>
+                        </div>
+                      </>
                      )}
                   </div>
-                ))}
+                )})}
                 {block.rooms.length === 0 && (
                     <p className="text-center py-4 text-gray-500 dark:text-gray-400">No rooms in this block.</p>
                 )}

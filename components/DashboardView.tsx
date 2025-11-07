@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import StatCard from './StatCard';
@@ -22,7 +21,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
       <div className="bg-white dark:bg-dark-card p-2 border border-gray-200 dark:border-dark-border rounded shadow-lg">
         <p className="font-bold text-gray-800 dark:text-dark-text">{label}</p>
-        <p className="text-primary-500">{`Total Value: $${payload[0].value.toLocaleString()}`}</p>
+        <p className="text-primary-500">{`Total Value: PKR ${payload[0].value.toLocaleString()}`}</p>
       </div>
     );
   }
@@ -50,7 +49,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, blocks }) => {
         <StatCard title="Total Blocks" value={stats.totalBlocks.toString()} icon={<BlocksIcon />} />
         <StatCard title="Total Rooms" value={stats.totalRooms.toString()} icon={<RoomsIcon />} />
         <StatCard title="Total Items" value={stats.totalItems.toLocaleString()} icon={<ItemsIcon />} />
-        <StatCard title="Total Value" value={`$${stats.totalValue.toLocaleString()}`} icon={<div className="text-2xl font-bold text-primary-500">$</div>} />
+        <StatCard title="Total Value" value={`PKR ${stats.totalValue.toLocaleString()}`} icon={<div className="text-xl font-bold text-primary-500">PKR</div>} />
       </div>
 
       <div className="bg-white dark:bg-dark-card p-4 sm:p-6 rounded-lg shadow-md transition-colors duration-300">
@@ -60,7 +59,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, blocks }) => {
             <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(128, 128, 128, 0.2)" />
                 <XAxis dataKey="name" tick={{ fill: 'currentColor' }} className="text-xs text-gray-600 dark:text-gray-400" />
-                <YAxis tickFormatter={(value) => `$${Number(value).toLocaleString()}`} tick={{ fill: 'currentColor' }} className="text-xs text-gray-600 dark:text-gray-400" />
+                <YAxis tickFormatter={(value) => `PKR ${Number(value).toLocaleString()}`} tick={{ fill: 'currentColor' }} className="text-xs text-gray-600 dark:text-gray-400" />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
                 <Bar dataKey="value" fill="#3b82f6" name="Total Value" />
