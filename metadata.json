@@ -1,0 +1,5 @@
+{
+  "name": "Loralai University Inventory System",
+  "description": "A modern, responsive Inventory Management System for University of Loralai, allowing staff to manage inventory block-wise and room-wise with ease. Features include a summary dashboard, CRUD operations for blocks, rooms, and items, search/filter functionality, and a dark mode toggle.",
+  "requestFramePermissions": []
+}
